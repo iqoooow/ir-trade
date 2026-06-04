@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XAUUSD Pro - Трейдинг Калькулятор & Терминал</title>
+  <meta name="description"
+    content="Professional dark-themed XAUUSD gold trading terminal featuring risk calculators, session clocks, live charts, and customized Fibonacci settings.">
+  <link rel="stylesheet" href="variables.css">
+</head>
+
+<body>
+
+  <!-- Live Correlated Ticker Tape -->
+  <div class="ticker-tape-container">
+    <div class="tradingview-widget-container" id="ticker-tape-widget">
+      <div class="tradingview-widget-container__widget"></div>
+    </div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">IR</div>
+      <div class="brand-name">IR TRADE<span> PRO</span></div>
+    </div>
+    <div style="font-size: 11px; font-weight: 700; color: var(--color-gold); letter-spacing: 0.5px;">MASTER TERMINAL
+      v3.0</div>
+  </header>
+
+  <!-- Dashboard Content Wrapper -->
+  <div class="dashboard-wrapper">
+
+    <!-- Left Column: Interactive Tabbed Calculator Card -->
+    <div class="trading-calc-card">
+      <!-- Card Header -->
+      <div class="calc-card-header" style="border-bottom: none; padding-bottom: 10px;">
+        <div class="ir-badge">IR</div>
+        <div class="header-info">
+          <span class="header-subtitle">XAUUSD · GOLD/USD</span>
+          <span class="header-title">Трейдинг Калькулятор</span>
+        </div>
+      </div>
+
+      <!-- Calculator Tabs Navigation -->
+      <div class="calc-tabs">
+        <button class="tab-btn active" id="tabBtn-range" onclick="switchTab('tab-range')">Diapazon</button>
+        <button class="tab-btn" id="tabBtn-risk" onclick="switchTab('tab-risk')">Risk & Lot</button>
+        <button class="tab-btn" id="tabBtn-settings" onclick="switchTab('tab-settings')">Sozlamalar</button>
+      </div>
+
+      <!-- Tab 1: Range Calculator (Diapazon) -->
+      <div id="tab-range" class="tab-panel active">
+        <!-- Market Direction -->
+        <div class="calc-section">
+          <span class="section-label">Направление рынка</span>
+          <div class="market-direction-row">
+            <button class="dir-btn buy-btn active" id="btnBuy" onclick="setDirection('buy')">▲ BUY</button>
+            <button class="dir-btn sell-btn" id="btnSell" onclick="setDirection('sell')">▼ SELL</button>
+          </div>
+        </div>
+
+        <!-- Daily Range Inputs -->
+        <div class="calc-section">
+          <span class="section-label">Диапазон дня</span>
+          <div class="range-inputs-grid">
+            <div class="input-card">
+              <span class="input-card-label">HIGH</span>
+              <input type="number" id="highVal" placeholder="0.00" oninput="calculate()">
+            </div>
+            <div class="input-card">
+              <span class="input-card-label">LOW</span>
+              <input type="number" id="lowVal" placeholder="0.00" oninput="calculate()">
+            </div>
+          </div>
+          <!-- Range stats display row -->
+          <div class="range-info-row">
+            <span class="range-text-value">Range: <span id="rangeDisplay">0.00</span></span>
+            <span class="range-badge below-limit" id="rangeBadge">&lt;60</span>
+          </div>
+          <!-- Range warning row -->
+          <div id="rangeError"
+            style="color: var(--color-sell); font-size: 11px; font-weight: 600; display: none; margin-top: 6px; padding: 6px 10px; background: var(--bg-reversal-row); border-radius: 6px; border: 1px solid var(--color-sell-border); text-align: center;">
+            ⚠️ HIGH qiymati LOW dan katta bo'lishi kerak!
+          </div>
+        </div>
+
+        <!-- Entry Points -->
+        <div class="calc-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="section-label">Точки входа</span>
+            <button class="help-trigger-btn" onclick="toggleHelpModal(true)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              Qoidalar
+            </button>
+          </div>
+
+          <div class="entry-points-list">
+            <!-- Reversal Row (Разворот) -->
+            <div class="entry-row reversal-row">
+              <span class="entry-row-label-badge">Разворот</span>
+              <span class="entry-price-val" id="reversalPrice">0.00</span>
+              <span class="action-side-badge sell-badge" id="reversalAction">SELL</span>
+            </div>
+
+            <!-- Consolidation Row (Консолидация) -->
+            <div class="entry-row consolidation-row">
+              <span class="entry-row-label-badge">Консолидация</span>
+              <span class="entry-price-val" id="consolidationPrice">0.00</span>
+              <span class="action-side-badge buy-badge" id="consolidationAction">BUY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Calculate Button -->
+        <div class="calc-btn-container">
+          <button class="hisoblash-btn" onclick="triggerCalculateAnimation()">Hisoblash</button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Risk & Lot Size Calculator -->
+      <div id="tab-risk" class="tab-panel">
+        <!-- Risk Inputs -->
+        <div class="calc-section">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="section-label">Parametrlar</span>
+            <button class="help-trigger-btn" onclick="syncPricesFromRange()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              Range-dan yuklash
+            </button>
+          </div>
+          <div class="risk-inputs-grid">
+            <div class="input-card">
+              <span class="input-card-label">Balans ($)</span>
+              <input type="number" id="riskBalance" placeholder="10000" oninput="calculateRisk()">
+            </div>
+            <div class="input-card">
+              <span class="input-card-label">Risk (%)</span>
+              <input type="number" id="riskPercent" placeholder="1.0" step="0.1" oninput="calculateRisk()">
+            </div>
+            <div class="input-card">
+              <span class="input-card-label">Kirish (Entry)</span>
+              <input type="number" id="riskEntry" placeholder="0.00" step="0.01" oninput="calculateRisk()">
+            </div>
+            <div class="input-card">
+              <span class="input-card-label">Stop Loss (SL)</span>
+              <input type="number" id="riskStop" placeholder="0.00" step="0.01" oninput="calculateRisk()">
+            </div>
+            <div class="input-card full-width">
+              <span class="input-card-label">Take Profit (TP)</span>
+              <input type="number" id="riskProfit" placeholder="0.00" step="0.01" oninput="calculateRisk()">
+            </div>
+          </div>
+          <!-- Risk parameters validation error row -->
+          <div id="riskError"
+            style="color: var(--color-sell); font-size: 11px; font-weight: 600; display: none; margin-top: 8px; padding: 6px 10px; background: var(--bg-reversal-row); border-radius: 6px; border: 1px solid var(--color-sell-border); text-align: center;">
+            ⚠️ SL va TP qiymatlari Entry narxiga nisbatan qarama-qarshi tomonlarda bo'lishi kerak!
+          </div>
+        </div>
+
+        <!-- Calculated Risk Outputs -->
+        <div class="calc-section">
+          <span class="section-label">Hisob-kitob natijalari</span>
+          <div class="risk-outputs-list">
+            <div class="risk-output-row">
+              <span class="risk-output-label">Tavsiya etilgan Lot:</span>
+              <span class="risk-output-val highlight-gold" id="riskLotDisplay">0.00</span>
+            </div>
+            <div class="risk-output-row">
+              <span class="risk-output-label">Risk miqdori (USD):</span>
+              <span class="risk-output-val" id="riskUsdDisplay" style="color: var(--color-sell);">$0.00</span>
+            </div>
+            <div class="risk-output-row">
+              <span class="risk-output-label">Foyda miqdori (USD):</span>
+              <span class="risk-output-val" id="riskRewardDisplay" style="color: var(--color-buy);">$0.00</span>
+            </div>
+            <div class="risk-output-row">
+              <span class="risk-output-label">Risk/Reward (R:R):</span>
+              <span class="risk-output-val" id="riskRatioDisplay">1:0.0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Calculate Button -->
+        <div class="calc-btn-container">
+          <button class="hisoblash-btn" onclick="triggerRiskCalculateAnimation()">Hisoblash</button>
+        </div>
+      </div>
+
+      <!-- Tab 3: Sozlamalar (Settings) -->
+      <div id="tab-settings" class="tab-panel">
+        <div class="calc-section">
+          <span class="section-label">Kalkulyator Sozlamalari</span>
+          <div class="settings-grid">
+            <div class="settings-help-text">
+              Strategiyaning Fibonachchi koeffitsiyentlarini va Range chegarasini ushbu bo'lim orqali sozlang.
+              O'zgarishlar avtomatik saqlanadi.
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-row-label">Разворот (Reversal)</span>
+              <span class="settings-row-desc">Fibonachchi kengaytmasi koeffitsiyenti (standart: 0.382)</span>
+              <div class="settings-input-wrapper">
+                <span class="settings-input-prefix">Coeff:</span>
+                <input type="number" id="settingFiboReversal" value="0.382" step="0.001"
+                  oninput="saveSettingsAndRecalculate()">
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-row-label">Консолидация (Breakout)</span>
+              <span class="settings-row-desc">Fibonachchi ichki darajasi koeffitsiyenti (standart: 0.236)</span>
+              <div class="settings-input-wrapper">
+                <span class="settings-input-prefix">Coeff:</span>
+                <input type="number" id="settingFiboConsolidation" value="0.236" step="0.001"
+                  oninput="saveSettingsAndRecalculate()">
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <span class="settings-row-label">Range Limiti</span>
+              <span class="settings-row-desc">Yuqori volatillik chegarasi (standart: 60.00)</span>
+              <div class="settings-input-wrapper">
+                <span class="settings-input-prefix">Limit:</span>
+                <input type="number" id="settingRangeLimit" value="60.00" step="1"
+                  oninput="saveSettingsAndRecalculate()">
+              </div>
+            </div>
+
+            <button class="reset-settings-btn" onclick="resetSettings()">Barcha sozlamalarni tiklash</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Dashboard Action Buttons -->
+      <div class="action-buttons-row" style="grid-template-columns: 1fr;">
+        <button class="btn-utility primary-action" onclick="saveCalculation()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          Saqlash
+        </button>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="calc-card-footer">
+        © IR TRADE · @iqooow
+      </div>
+    </div>
+
+    <!-- Right Column: Interactive Charts, Session Clocks and History Tables -->
+    <div class="right-column">
+
+      <!-- Live TradingView Chart Widget Card -->
+      <div class="widget-card" id="chart-widget-card" style="padding: 16px;">
+        <div class="chart-container-widget">
+          <!-- TradingView Widget BEGIN -->
+          <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+            <div id="tradingview_xauusd" style="height: 100%; width: 100%;"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+            <script type="text/javascript">
+              new TradingView.widget({
+                "autosize": true,
+                "symbol": "OANDA:XAUUSD",
+                "interval": "D",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "ru",
+                "toolbar_bg": "#131326",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_xauusd"
+              });
+            </script>
+          </div>
+          <!-- TradingView Widget END -->
+        </div>
+      </div>
+
+      <!-- Trading Sessions Clock Widget Card -->
+      <div class="widget-card">
+        <div class="history-header">
+          <span class="history-title">Savdo Sessiyalari (UTC)</span>
+          <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-secondary);"
+            id="utcTimeDisplay">00:00:00 UTC</span>
+        </div>
+        <div class="sessions-grid">
+          <!-- Sydney -->
+          <div class="session-card" id="session-sydney">
+            <div class="session-status-row">
+              <span class="session-name">Sydney</span>
+              <span class="session-status-badge closed" id="status-sydney">
+                <span class="status-dot closed"></span>CLOSED
+              </span>
+            </div>
+            <div class="session-time" id="time-sydney">00:00</div>
+            <div class="session-hours">22:00 - 07:00</div>
+          </div>
+          <!-- Tokyo -->
+          <div class="session-card" id="session-tokyo">
+            <div class="session-status-row">
+              <span class="session-name">Tokyo</span>
+              <span class="session-status-badge closed" id="status-tokyo">
+                <span class="status-dot closed"></span>CLOSED
+              </span>
+            </div>
+            <div class="session-time" id="time-tokyo">00:00</div>
+            <div class="session-hours">00:00 - 09:00</div>
+          </div>
+          <!-- London -->
+          <div class="session-card" id="session-london">
+            <div class="session-status-row">
+              <span class="session-name">London</span>
+              <span class="session-status-badge closed" id="status-london">
+                <span class="status-dot closed"></span>CLOSED
+              </span>
+            </div>
+            <div class="session-time" id="time-london">00:00</div>
+            <div class="session-hours">08:00 - 17:00</div>
+          </div>
+          <!-- New York -->
+          <div class="session-card" id="session-newyork">
+            <div class="session-status-row">
+              <span class="session-name">New York</span>
+              <span class="session-status-badge closed" id="status-newyork">
+                <span class="status-dot closed"></span>CLOSED
+              </span>
+            </div>
+            <div class="session-time" id="time-newyork">00:00</div>
+            <div class="session-hours">13:00 - 22:00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Table Widget Card -->
+      <div class="widget-card">
+        <div class="history-header">
+          <span class="history-title">Saqlangan Hisoblar Tarixi</span>
+          <button class="clear-btn" onclick="clearHistory()">Tarixni tozalash</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="history-table" id="historyTable">
+            <thead>
+              <tr>
+                <th>Vaqt</th>
+                <th>Yo'nalish / Turi</th>
+                <th>HIGH / Balans</th>
+                <th>LOW / Entry</th>
+                <th>Range / Lot</th>
+                <th>Разворот / Risk</th>
+                <th>Консолидация / Target</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Dynamically populated from JS -->
+            </tbody>
+          </table>
+          <div class="empty-history-text" id="emptyHistoryMessage">Saqlangan hisoblar mavjud emas.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Help / Guideline Modal Popup Overlay -->
+  <div class="modal-overlay" id="helpModal" onclick="toggleHelpModal(false)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">Qoidalar va Savdo Ko'rsatmalari</span>
+        <button class="modal-close-btn" onclick="toggleHelpModal(false)">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Ushbu kalkulyator oltinning kunlik diapazoni (HIGH va LOW) hamda o'zgaruvchanligini (Range) tahlil qilish
+          orqali Fibonachchi ko'rsatkichlarida kirish nuqtalarini aniqlab beradi.</p>
+
+        <div class="modal-section">
+          <span class="modal-section-title" style="color: var(--color-sell);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+              style="vertical-align: middle;">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Разворот (Reversal - Qayrilish)
+          </span>
+          <p>Bozordagi trendning haddan tashqari qizib ketgan nuqtalaridan qaytishiga mo'ljallangan. Kundalik
+            diapazondan tashqaridagi **Fibonachchi kengaytmasi** (standart 0.382) darajasidan foydalanadi. Odatda
+            trendga qarshi (counter-trend) savdolarda ishlatiladi.</p>
+        </div>
+
+        <div class="modal-section">
+          <span class="modal-section-title" style="color: var(--color-consolidation-text);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+              style="vertical-align: middle;">
+              <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
+            </svg>
+            Консолидация (Breakout - Yorib o'tish)
+          </span>
+          <p>Bozorning joriy trend yo'nalishi bo'yicha harakatini davom ettirishiga mo'ljallangan. Kundalik diapazon
+            ichidagi **Fibonachchi ichki darajasi** (standart 0.236) darajasidan foydalanadi. Trend yo'nalishi
+            (with-trend) bo'yicha yorib o'tishlarda ishlatiladi.</p>
+        </div>
+
+        <div class="modal-section"
+          style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px; margin-top: 6px;">
+          <span class="modal-section-title" style="color: var(--color-gold);">⚠️ Range Chegarasi Muhim qoida!</span>
+          <p>Agar kunlik diapazon (Range) belgilangan chegaradan kichik bo'lsa (yashil ko'rsatkich), bozor o'rtacha
+            o'zgaruvchanlikda bo'ladi va kirish nuqtalari ishonchliroq hisoblanadi. Agar oshib ketsa (qizil
+            ko'rsatkich), ehtiyot bo'lish tavsiya etiladi.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Banner -->
+  <div class="toast" id="toast" style="left: 50%; transform: translate(-50%, 100px);">Hisob-kitob yangilandi!</div>
+
+  <script>
+    let currentDirection = 'buy';
+    let savedCalculations = [];
+    let activeTab = 'tab-range';
+
+    // Settings Defaults
+    let fiboReversal = 0.382;
+    let fiboConsolidation = 0.236;
+    let rangeLimit = 60.00;
+
+    // On Load: Render history log and settings
+    window.addEventListener('load', () => {
+      loadSettings();
+      loadHistoryFromStorage();
+      initTickerTape();
+      calculate();
+      calculateRisk();
+
+      // Sessions Clock Loop
+      updateSessions();
+      setInterval(updateSessions, 1000);
+    });
+
+    // Dynamically insert Ticker Tape to prevent IDE inline JSON/JS linter errors
+    function initTickerTape() {
+      const container = document.getElementById('ticker-tape-widget');
+      if (container) {
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+        script.async = true;
+        script.innerHTML = JSON.stringify({
+          "symbols": [
+            {
+              "proName": "OANDA:XAUUSD",
+              "title": "GOLD"
+            },
+            {
+              "proName": "OANDA:XAGUSD",
+              "title": "SILVER"
+            },
+            {
+              "proName": "INDEX:DXY",
+              "title": "US DOLLAR INDEX"
+            },
+            {
+              "proName": "TVC:US10Y",
+              "title": "US 10Y YIELD"
+            }
+          ],
+          "showSymbolLogo": true,
+          "colorTheme": "dark",
+          "isTransparent": true,
+          "displayMode": "adaptive",
+          "locale": "ru"
+        });
+        container.appendChild(script);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Settings Logic
+    // -------------------------------------------------------------
+    function loadSettings() {
+      const customReversal = localStorage.getItem('ir_setting_fibo_reversal');
+      const customConsolidation = localStorage.getItem('ir_setting_fibo_consolidation');
+      const customRangeLimit = localStorage.getItem('ir_setting_range_limit');
+
+      if (customReversal !== null) fiboReversal = parseFloat(customReversal);
+      if (customConsolidation !== null) fiboConsolidation = parseFloat(customConsolidation);
+      if (customRangeLimit !== null) rangeLimit = parseFloat(customRangeLimit);
+
+      document.getElementById('settingFiboReversal').value = fiboReversal;
+      document.getElementById('settingFiboConsolidation').value = fiboConsolidation;
+      document.getElementById('settingRangeLimit').value = rangeLimit;
+    }
+
+    function saveSettingsAndRecalculate() {
+      const revInput = parseFloat(document.getElementById('settingFiboReversal').value);
+      const consInput = parseFloat(document.getElementById('settingFiboConsolidation').value);
+      const rangeInput = parseFloat(document.getElementById('settingRangeLimit').value);
+
+      if (!isNaN(revInput) && revInput >= 0) fiboReversal = revInput;
+      if (!isNaN(consInput) && consInput >= 0) fiboConsolidation = consInput;
+      if (!isNaN(rangeInput) && rangeInput >= 0) rangeLimit = rangeInput;
+
+      localStorage.setItem('ir_setting_fibo_reversal', fiboReversal);
+      localStorage.setItem('ir_setting_fibo_consolidation', fiboConsolidation);
+      localStorage.setItem('ir_setting_range_limit', rangeLimit);
+
+      calculate();
+    }
+
+    function resetSettings() {
+      fiboReversal = 0.382;
+      fiboConsolidation = 0.236;
+      rangeLimit = 60.00;
+
+      localStorage.removeItem('ir_setting_fibo_reversal');
+      localStorage.removeItem('ir_setting_fibo_consolidation');
+      localStorage.removeItem('ir_setting_range_limit');
+
+      document.getElementById('settingFiboReversal').value = 0.382;
+      document.getElementById('settingFiboConsolidation').value = 0.236;
+      document.getElementById('settingRangeLimit').value = 60.00;
+
+      calculate();
+      showToast("Sozlamalar standart holatga tiklandi!");
+    }
+
+    // -------------------------------------------------------------
+    // Tabs Navigation
+    // -------------------------------------------------------------
+    function switchTab(tabId) {
+      activeTab = tabId;
+
+      // Hide all panels
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+
+      // Show target panel
+      document.getElementById(tabId).classList.add('active');
+
+      // Deactivate all tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Activate matching button
+      const btnId = 'tabBtn-' + tabId.replace('tab-', '');
+      document.getElementById(btnId).classList.add('active');
+    }
+
+    // -------------------------------------------------------------
+    // Range Calculator Tab
+    // -------------------------------------------------------------
+    function setDirection(dir) {
+      currentDirection = dir;
+      const btnBuy = document.getElementById('btnBuy');
+      const btnSell = document.getElementById('btnSell');
+
+      if (dir === 'buy') {
+        btnBuy.classList.add('active');
+        btnSell.classList.remove('active');
+      } else {
+        btnBuy.classList.remove('active');
+        btnSell.classList.add('active');
+      }
+      calculate();
+    }
+
+    function calculate() {
+      const high = parseFloat(document.getElementById('highVal').value) || 0;
+      const low = parseFloat(document.getElementById('lowVal').value) || 0;
+      const rangeErr = document.getElementById('rangeError');
+
+      if (high < low) {
+        rangeErr.style.display = 'block';
+      } else {
+        rangeErr.style.display = 'none';
+      }
+
+      // Calculate Range
+      const range = Math.max(0, high - low);
+      document.getElementById('rangeDisplay').textContent = range.toFixed(2);
+
+      // Range Badge (uses custom rangeLimit settings)
+      const rangeBadge = document.getElementById('rangeBadge');
+      if (range < rangeLimit) {
+        rangeBadge.textContent = '<' + rangeLimit.toFixed(0);
+        rangeBadge.className = 'range-badge below-limit';
+      } else {
+        rangeBadge.textContent = '≥' + rangeLimit.toFixed(0);
+        rangeBadge.className = 'range-badge above-limit';
+      }
+
+      let reversalPrice = 0;
+      let consolidationPrice = 0;
+      const reversalAction = document.getElementById('reversalAction');
+      const consolidationAction = document.getElementById('consolidationAction');
+
+      if (currentDirection === 'buy') {
+        reversalPrice = high + (range * fiboReversal);
+        consolidationPrice = low + (range * fiboConsolidation);
+
+        reversalAction.textContent = 'SELL';
+        reversalAction.className = 'action-side-badge sell-badge';
+        consolidationAction.textContent = 'BUY';
+        consolidationAction.className = 'action-side-badge buy-badge';
+      } else {
+        reversalPrice = low - (range * fiboReversal);
+        consolidationPrice = high - (range * fiboConsolidation);
+
+        reversalAction.textContent = 'BUY';
+        reversalAction.className = 'action-side-badge buy-badge';
+        consolidationAction.textContent = 'SELL';
+        consolidationAction.className = 'action-side-badge sell-badge';
+      }
+
+      document.getElementById('reversalPrice').textContent = reversalPrice.toFixed(2);
+      document.getElementById('consolidationPrice').textContent = consolidationPrice.toFixed(2);
+    }
+
+    function triggerCalculateAnimation() {
+      calculate();
+      showToast("Diapazon hisoblandi!");
+    }
+
+    // -------------------------------------------------------------
+    // Risk & Lot Calculator Tab
+    // -------------------------------------------------------------
+    function syncPricesFromRange() {
+      // Sync consolidation entry and low/high stop loss into the risk calculator based on current settings
+      calculate();
+      const low = parseFloat(document.getElementById('lowVal').value) || 0;
+      const high = parseFloat(document.getElementById('highVal').value) || 0;
+      const consolidation = parseFloat(document.getElementById('consolidationPrice').textContent) || 0;
+
+      document.getElementById('riskEntry').value = consolidation.toFixed(2);
+
+      if (currentDirection === 'buy') {
+        document.getElementById('riskStop').value = low.toFixed(2);
+        // Default 1:3 Take Profit target
+        const diff = consolidation - low;
+        document.getElementById('riskProfit').value = (consolidation + diff * 3).toFixed(2);
+      } else {
+        document.getElementById('riskStop').value = high.toFixed(2);
+        // Default 1:3 Take Profit target
+        const diff = high - consolidation;
+        document.getElementById('riskProfit').value = (consolidation - diff * 3).toFixed(2);
+      }
+
+      calculateRisk();
+      showToast("Range qiymatlari yuklandi!");
+    }
+
+    function calculateRisk() {
+      const balance = parseFloat(document.getElementById('riskBalance').value) || 0;
+      const riskPct = parseFloat(document.getElementById('riskPercent').value) || 0;
+      const entry = parseFloat(document.getElementById('riskEntry').value) || 0;
+      const stop = parseFloat(document.getElementById('riskStop').value) || 0;
+      const profit = parseFloat(document.getElementById('riskProfit').value) || 0;
+      const riskErr = document.getElementById('riskError');
+
+      // Validation: SL and TP must be on opposite sides of Entry
+      const hasError = (entry - stop) * (entry - profit) >= 0 && entry !== 0 && stop !== 0 && profit !== 0;
+
+      if (hasError) {
+        riskErr.style.display = 'block';
+        document.getElementById('riskUsdDisplay').textContent = '$0.00';
+        document.getElementById('riskLotDisplay').textContent = '0.00';
+        document.getElementById('riskRewardDisplay').textContent = '$0.00';
+        document.getElementById('riskRatioDisplay').textContent = '1:0.0';
+        return;
+      } else {
+        riskErr.style.display = 'none';
+      }
+
+      const usdRisk = balance * (riskPct / 100);
+      document.getElementById('riskUsdDisplay').textContent = '$' + usdRisk.toFixed(2);
+
+      const slDistance = Math.abs(entry - stop);
+      const tpDistance = Math.abs(entry - profit);
+
+      if (slDistance === 0) {
+        document.getElementById('riskLotDisplay').textContent = '0.00';
+        document.getElementById('riskRewardDisplay').textContent = '$0.00';
+        document.getElementById('riskRatioDisplay').textContent = '1:0.0';
+        return;
+      }
+
+      // Gold standard contract size: 1 lot = 100 ounces. 
+      // A $1 change in Gold price equals $100 P&L per standard lot.
+      // So Lot Size = USD Risk / (SL Distance * 100)
+      const lotSize = usdRisk / (slDistance * 100);
+      document.getElementById('riskLotDisplay').textContent = lotSize.toFixed(2);
+
+      const usdReward = lotSize * (tpDistance * 100);
+      document.getElementById('riskRewardDisplay').textContent = '$' + usdReward.toFixed(2);
+
+      const rrRatio = tpDistance / slDistance;
+      document.getElementById('riskRatioDisplay').textContent = '1:' + rrRatio.toFixed(1);
+    }
+
+    function triggerRiskCalculateAnimation() {
+      calculateRisk();
+      showToast("Risk va lot hisoblandi!");
+    }
+
+    // -------------------------------------------------------------
+    // Session Clocks Widget Logic
+    // -------------------------------------------------------------
+    function updateSessions() {
+      const now = new Date();
+
+      // UTC Time clock representation
+      const utcHours = String(now.getUTCHours()).padStart(2, '0');
+      const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+      const utcSeconds = String(now.getUTCSeconds()).padStart(2, '0');
+      document.getElementById('utcTimeDisplay').textContent = `${utcHours}:${utcMinutes}:${utcSeconds} UTC`;
+
+      // Current UTC time represented as float (22.5 is 22:30)
+      const utcFloat = now.getUTCHours() + now.getUTCMinutes() / 60;
+
+      // Sydney: 22:00 - 07:00 UTC
+      updateSessionStatus('sydney', utcFloat, 22, 7, now);
+      // Tokyo: 00:00 - 09:00 UTC
+      updateSessionStatus('tokyo', utcFloat, 0, 9, now);
+      // London: 08:00 - 17:00 UTC
+      updateSessionStatus('london', utcFloat, 8, 17, now);
+      // New York: 13:00 - 22:00 UTC
+      updateSessionStatus('newyork', utcFloat, 13, 22, now);
+    }
+
+    function updateSessionStatus(name, utcFloat, openHour, closeHour, localTime) {
+      let isOpen = false;
+      if (openHour < closeHour) {
+        // Standard hours interval (London/Tokyo)
+        isOpen = utcFloat >= openHour && utcFloat < closeHour;
+      } else {
+        // Interval crossing midnight (Sydney)
+        isOpen = utcFloat >= openHour || utcFloat < closeHour;
+      }
+
+      const badge = document.getElementById(`status-${name}`);
+      const card = document.getElementById(`session-${name}`);
+      const clockDisp = document.getElementById(`time-${name}`);
+
+      // Resolve Timezones dynamically
+      let tz = '';
+      if (name === 'sydney') tz = 'Australia/Sydney';
+      else if (name === 'tokyo') tz = 'Asia/Tokyo';
+      else if (name === 'london') tz = 'Europe/London';
+      else if (name === 'newyork') tz = 'America/New_York';
+
+      try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        clockDisp.textContent = formatter.format(localTime);
+      } catch (e) {
+        clockDisp.textContent = '--:--';
+      }
+
+      if (isOpen) {
+        badge.className = 'session-status-badge open';
+        badge.innerHTML = '<span class="status-dot open"></span>OPEN';
+        card.classList.add('active-session');
+      } else {
+        badge.className = 'session-status-badge closed';
+        badge.innerHTML = '<span class="status-dot closed"></span>CLOSED';
+        card.classList.remove('active-session');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // History Persistence & Operations
+    // -------------------------------------------------------------
+    function saveCalculation() {
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      let record = {};
+
+      if (activeTab === 'tab-range') {
+        calculate();
+        const high = parseFloat(document.getElementById('highVal').value) || 0;
+        const low = parseFloat(document.getElementById('lowVal').value) || 0;
+        const range = high - low;
+        const reversal = parseFloat(document.getElementById('reversalPrice').textContent);
+        const consolidation = parseFloat(document.getElementById('consolidationPrice').textContent);
+
+        record = {
+          type: 'RANGE',
+          time: timestamp,
+          direction: currentDirection.toUpperCase(),
+          high: high.toFixed(2),
+          low: low.toFixed(2),
+          range: range.toFixed(2),
+          reversal: reversal.toFixed(2),
+          consolidation: consolidation.toFixed(2)
+        };
+      } else if (activeTab === 'tab-risk') {
+        calculateRisk();
+        const balance = parseFloat(document.getElementById('riskBalance').value) || 0;
+        const riskPct = parseFloat(document.getElementById('riskPercent').value) || 0;
+        const entry = parseFloat(document.getElementById('riskEntry').value) || 0;
+        const stop = parseFloat(document.getElementById('riskStop').value) || 0;
+        const profit = parseFloat(document.getElementById('riskProfit').value) || 0;
+
+        const lotSize = document.getElementById('riskLotDisplay').textContent;
+        const usdRisk = parseFloat(document.getElementById('riskUsdDisplay').textContent.replace('$', '')) || 0;
+        const usdReward = parseFloat(document.getElementById('riskRewardDisplay').textContent.replace('$', '')) || 0;
+        const rrRatio = document.getElementById('riskRatioDisplay').textContent;
+
+        record = {
+          type: 'RISK',
+          time: timestamp,
+          balance: balance.toFixed(0),
+          riskPct: riskPct.toFixed(1),
+          entry: entry.toFixed(2),
+          stop: stop.toFixed(2),
+          profit: profit.toFixed(2),
+          lotSize: lotSize,
+          usdRisk: usdRisk.toFixed(2),
+          usdReward: usdReward.toFixed(2),
+          rrRatio: rrRatio
+        };
+      } else {
+        showToast("Sozlamalar bo'limi saqlanmaydi!");
+        return;
+      }
+
+      savedCalculations.unshift(record);
+      if (savedCalculations.length > 20) {
+        savedCalculations.pop();
+      }
+
+      saveHistoryToStorage();
+      renderHistoryTable();
+      showToast("Hisob tarixga saqlandi!");
+    }
+
+    function loadHistoryFromStorage() {
+      const data = localStorage.getItem('ir_xauusd_history');
+      if (data) {
+        try {
+          savedCalculations = JSON.parse(data);
+        } catch (e) {
+          savedCalculations = [];
+        }
+      }
+      renderHistoryTable();
+    }
+
+    function saveHistoryToStorage() {
+      localStorage.setItem('ir_xauusd_history', JSON.stringify(savedCalculations));
+    }
+
+    function clearHistory() {
+      savedCalculations = [];
+      saveHistoryToStorage();
+      renderHistoryTable();
+      showToast("Tarix tozalandi!");
+    }
+
+    function renderHistoryTable() {
+      const tbody = document.getElementById('historyTableBody');
+      const emptyMsg = document.getElementById('emptyHistoryMessage');
+
+      tbody.innerHTML = '';
+
+      if (savedCalculations.length === 0) {
+        emptyMsg.style.display = 'block';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+
+      savedCalculations.forEach(record => {
+        const tr = document.createElement('tr');
+
+        if (!record.type || record.type === 'RANGE') {
+          const badgeClass = record.direction === 'BUY' ? 'badge buy' : 'badge sell';
+          tr.innerHTML = `
+            <td>${record.time}</td>
+            <td><span class="${badgeClass}">${record.direction}</span><span style="font-size: 9px; font-weight: 700; color: var(--text-muted); margin-left: 4px;">PLAN</span></td>
+            <td class="mono">${record.high}</td>
+            <td class="mono">${record.low}</td>
+            <td class="mono">${record.range}</td>
+            <td class="mono" style="color: var(--color-sell);">${record.reversal}</td>
+            <td class="mono" style="color: var(--color-consolidation-text);">${record.consolidation}</td>
+          `;
+        } else {
+          // RISK Calculation Type
+          const isBuy = parseFloat(record.entry) > parseFloat(record.stop);
+          const badgeClass = isBuy ? 'badge buy' : 'badge sell';
+          tr.innerHTML = `
+            <td>${record.time}</td>
+            <td><span class="${badgeClass}">${isBuy ? 'BUY' : 'SELL'}</span><span style="font-size: 9px; font-weight: 700; color: var(--color-gold); margin-left: 4px;">RISK</span></td>
+            <td class="mono" title="Balans / Risk">$${parseInt(record.balance).toLocaleString()} / ${record.riskPct}%</td>
+            <td class="mono" title="Entry / Stop">${record.entry} / ${record.stop}</td>
+            <td class="mono" style="color: var(--color-gold); font-weight: 700;">${record.lotSize} Lot</td>
+            <td class="mono" style="color: var(--color-sell); font-weight: 600;">-$${record.usdRisk}</td>
+            <td class="mono" style="color: var(--color-buy); font-weight: 600;">+$${record.usdReward}</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Clipboard Export Utility
+    // -------------------------------------------------------------
+    function copyTelegram() {
+      if (activeTab === 'tab-range') {
+        calculate();
+        const high = parseFloat(document.getElementById('highVal').value) || 0;
+        const low = parseFloat(document.getElementById('lowVal').value) || 0;
+        const range = (high - low).toFixed(2);
+        const reversal = document.getElementById('reversalPrice').textContent;
+        const consolidation = document.getElementById('consolidationPrice').textContent;
+
+        const dirArrow = currentDirection === 'buy' ? 'BUY ▲' : 'SELL ▼';
+        const rangeText = range + (parseFloat(range) < rangeLimit ? ` (<${rangeLimit.toFixed(0)})` : ` (≥${rangeLimit.toFixed(0)})`);
+
+        const text = `📊 IR TRADE | XAUUSD Plan
+Направление: ${dirArrow}
+HIGH: ${high.toFixed(2)} | LOW: ${low.toFixed(2)}
+Range: ${rangeText}
+
+🎯 Точки входа (Entry Points):
+🔴 Разворот (${currentDirection === 'buy' ? 'SELL' : 'BUY'}): ${reversal}
+🟢 Консолидация (${currentDirection === 'buy' ? 'BUY' : 'SELL'}): ${consolidation}
+
+Kanalimiz: @ir_trade`;
+
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("Telegram uchun nusxalandi!");
+        }).catch(err => {
+          console.error("Copy failed", err);
+        });
+      } else if (activeTab === 'tab-risk') {
+        calculateRisk();
+        const balance = parseFloat(document.getElementById('riskBalance').value) || 0;
+        const riskPct = parseFloat(document.getElementById('riskPercent').value) || 0;
+        const entry = parseFloat(document.getElementById('riskEntry').value) || 0;
+        const stop = parseFloat(document.getElementById('riskStop').value) || 0;
+        const profit = parseFloat(document.getElementById('riskProfit').value) || 0;
+
+        const lotSize = document.getElementById('riskLotDisplay').textContent;
+        const usdRisk = document.getElementById('riskUsdDisplay').textContent;
+        const usdReward = document.getElementById('riskRewardDisplay').textContent;
+        const rrRatio = document.getElementById('riskRatioDisplay').textContent;
+
+        const isBuy = entry > stop;
+        const dirArrow = isBuy ? 'BUY ▲' : 'SELL ▼';
+        const slPips = (Math.abs(entry - stop) * 10).toFixed(0);
+
+        const text = `📊 IR TRADE | Gold Risk Management
+Тип ордера: ${dirArrow}
+Баланс: $${balance.toLocaleString()} | Риск: ${riskPct}% (${usdRisk})
+Вход (Entry): ${entry.toFixed(2)}
+Stop Loss: ${stop.toFixed(2)} (${slPips} pips)
+Take Profit: ${profit.toFixed(2)}
+
+🎯 Расчет объёма (Lot size):
+🔥 Рекомендуемый лот: ${lotSize} standard lot
+💰 Потенциальная прибыль: ${usdReward}
+⚖️ Risk/Reward Ratio: ${rrRatio}
+
+Kanalimiz: @ir_trade`;
+
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("Telegram uchun nusxalandi!");
+        }).catch(err => {
+          console.error("Copy failed", err);
+        });
+      } else {
+        showToast("Nusxalash uchun bu bo'limda ma'lumot yo'q!");
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Modal Popup Overlay Utilities
+    // -------------------------------------------------------------
+    function toggleHelpModal(show) {
+      const modal = document.getElementById('helpModal');
+      if (show) {
+        modal.classList.add('show');
+      } else {
+        modal.classList.remove('show');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Action Alerts / Toast Banner
+    // -------------------------------------------------------------
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+
+      toast.style.transform = "translate(-50%, 0)";
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.style.transform = "translate(-50%, 100px)";
+      }, 2000);
+    }
+  </script>
+</body>
+
+</html>
