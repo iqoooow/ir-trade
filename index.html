@@ -86,6 +86,20 @@
           </div>
         </div>
 
+        <!-- Current Price & Live Signal -->
+        <div class="calc-section">
+          <span class="section-label">Joriy narx & Signal</span>
+          <div class="input-card full-width">
+            <span class="input-card-label">Joriy narx (Current Price)</span>
+            <input type="number" id="currentPrice" placeholder="0.00" step="0.01" oninput="calculate()">
+          </div>
+          <div id="signalBanner"
+            style="margin-top: 10px; display: none; padding: 12px 14px; border-radius: 10px; text-align: center; border: 1px solid transparent;">
+            <div id="signalMain" style="font-size: 16px; font-weight: 700; letter-spacing: 0.5px;"></div>
+            <div id="signalSub" style="font-size: 11px; font-weight: 500; margin-top: 4px; color: var(--text-secondary);"></div>
+          </div>
+        </div>
+
         <!-- Entry Points -->
         <div class="calc-section">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -205,8 +219,8 @@
             </div>
 
             <div class="settings-row">
-              <span class="settings-row-label">Разворот (Reversal)</span>
-              <span class="settings-row-desc">Fibonachchi kengaytmasi koeffitsiyenti (standart: 0.382)</span>
+              <span class="settings-row-label">Разворот (Chuqur)</span>
+              <span class="settings-row-desc">Chuqur Fibonachchi retracement darajasi (standart: 0.382)</span>
               <div class="settings-input-wrapper">
                 <span class="settings-input-prefix">Coeff:</span>
                 <input type="number" id="settingFiboReversal" value="0.382" step="0.001"
@@ -215,8 +229,8 @@
             </div>
 
             <div class="settings-row">
-              <span class="settings-row-label">Консолидация (Breakout)</span>
-              <span class="settings-row-desc">Fibonachchi ichki darajasi koeffitsiyenti (standart: 0.236)</span>
+              <span class="settings-row-label">Консолидация (Sayoz)</span>
+              <span class="settings-row-desc">Sayoz Fibonachchi retracement darajasi (standart: 0.236)</span>
               <div class="settings-input-wrapper">
                 <span class="settings-input-prefix">Coeff:</span>
                 <input type="number" id="settingFiboConsolidation" value="0.236" step="0.001"
@@ -382,8 +396,9 @@
         <button class="modal-close-btn" onclick="toggleHelpModal(false)">&times;</button>
       </div>
       <div class="modal-body">
-        <p>Ushbu kalkulyator oltinning kunlik diapazoni (HIGH va LOW) hamda o'zgaruvchanligini (Range) tahlil qilish
-          orqali Fibonachchi ko'rsatkichlarida kirish nuqtalarini aniqlab beradi.</p>
+        <p>Ushbu kalkulyator tanlangan to'lqindagi (swing) HIGH va LOW asosida standart Fibonachchi retracement
+          (orqaga tortilish) darajalarini hisoblab, trend yo'nalishi bo'yicha pullback kirish nuqtalarini aniqlaydi.
+          Yo'nalish tugmasi (BUY/SELL) — siz o'lchagan to'lqinning trend yo'nalishini bildiradi.</p>
 
         <div class="modal-section">
           <span class="modal-section-title" style="color: var(--color-sell);">
@@ -393,11 +408,10 @@
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            Разворот (Reversal - Qayrilish)
+            Разворот (Chuqur retracement)
           </span>
-          <p>Bozordagi trendning haddan tashqari qizib ketgan nuqtalaridan qaytishiga mo'ljallangan. Kundalik
-            diapazondan tashqaridagi **Fibonachchi kengaytmasi** (standart 0.382) darajasidan foydalanadi. Odatda
-            trendga qarshi (counter-trend) savdolarda ishlatiladi.</p>
+          <p>Chuqurroq orqaga tortilish darajasi (standart **0.382**). Diapazon **ichida** joylashadi. Narx shu
+            chuqurlikkacha tortilganda, trend yo'nalishi bo'yicha kirish kuchliroq tasdiqlanadi.</p>
         </div>
 
         <div class="modal-section">
@@ -406,11 +420,11 @@
               style="vertical-align: middle;">
               <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" />
             </svg>
-            Консолидация (Breakout - Yorib o'tish)
+            Консолидация (Sayoz retracement)
           </span>
-          <p>Bozorning joriy trend yo'nalishi bo'yicha harakatini davom ettirishiga mo'ljallangan. Kundalik diapazon
-            ichidagi **Fibonachchi ichki darajasi** (standart 0.236) darajasidan foydalanadi. Trend yo'nalishi
-            (with-trend) bo'yicha yorib o'tishlarda ishlatiladi.</p>
+          <p>Sayozroq orqaga tortilish darajasi (standart **0.236**). Diapazon **ichida** joylashadi. Bu ikki daraja
+            orasidagi oraliq — trend yo'nalishi bo'yicha asosiy kirish zonasi ("Fibo zona"). Narx shu zonaga
+            kirganda signal faollashadi.</p>
         </div>
 
         <div class="modal-section"
@@ -609,26 +623,76 @@
       const reversalAction = document.getElementById('reversalAction');
       const consolidationAction = document.getElementById('consolidationAction');
 
+      // Standard Fibonacci retracement on the selected swing leg.
+      // Both entry levels sit INSIDE the HIGH–LOW range and are pullback
+      // (retracement) entries in the direction of the trend.
       if (currentDirection === 'buy') {
-        reversalPrice = high + (range * fiboReversal);
-        consolidationPrice = low + (range * fiboConsolidation);
-
-        reversalAction.textContent = 'SELL';
-        reversalAction.className = 'action-side-badge sell-badge';
-        consolidationAction.textContent = 'BUY';
-        consolidationAction.className = 'action-side-badge buy-badge';
-      } else {
-        reversalPrice = low - (range * fiboReversal);
-        consolidationPrice = high - (range * fiboConsolidation);
+        // Bullish leg (LOW -> HIGH): buy the pullback (retrace down from HIGH)
+        consolidationPrice = high - (range * fiboConsolidation); // shallow retracement (e.g. 0.236)
+        reversalPrice = high - (range * fiboReversal);           // deeper retracement (e.g. 0.382)
 
         reversalAction.textContent = 'BUY';
         reversalAction.className = 'action-side-badge buy-badge';
+        consolidationAction.textContent = 'BUY';
+        consolidationAction.className = 'action-side-badge buy-badge';
+      } else {
+        // Bearish leg (HIGH -> LOW): sell the pullback (retrace up from LOW)
+        consolidationPrice = low + (range * fiboConsolidation);
+        reversalPrice = low + (range * fiboReversal);
+
+        reversalAction.textContent = 'SELL';
+        reversalAction.className = 'action-side-badge sell-badge';
         consolidationAction.textContent = 'SELL';
         consolidationAction.className = 'action-side-badge sell-badge';
       }
 
       document.getElementById('reversalPrice').textContent = reversalPrice.toFixed(2);
       document.getElementById('consolidationPrice').textContent = consolidationPrice.toFixed(2);
+
+      // Live signal based on current price
+      updateSignal(reversalPrice, reversalAction.textContent, consolidationPrice, consolidationAction.textContent, range);
+    }
+
+    function updateSignal(reversalPrice, reversalAct, consolidationPrice, consolidationAct, range) {
+      const banner = document.getElementById('signalBanner');
+      const signalMain = document.getElementById('signalMain');
+      const signalSub = document.getElementById('signalSub');
+      const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+
+      // Hide signal until we have a valid price and range
+      if (currentPrice <= 0 || range <= 0) {
+        banner.style.display = 'none';
+        return;
+      }
+      banner.style.display = 'block';
+
+      // The two fib levels define the retracement entry zone (golden zone).
+      const zoneLow = Math.min(consolidationPrice, reversalPrice);
+      const zoneHigh = Math.max(consolidationPrice, reversalPrice);
+
+      // Trade direction is the trend direction (both levels share the same action)
+      const act = consolidationAct;
+      const isBuy = act === 'BUY';
+      const color = isBuy ? 'var(--color-buy)' : 'var(--color-sell)';
+      const bg = isBuy ? 'var(--color-buy-bg)' : 'var(--color-sell-bg)';
+      const border = isBuy ? 'var(--color-buy-border)' : 'var(--color-sell-border)';
+
+      if (currentPrice >= zoneLow && currentPrice <= zoneHigh) {
+        // Price is inside the Fibonacci retracement zone -> active entry signal
+        banner.style.background = bg;
+        banner.style.borderColor = border;
+        signalMain.style.color = color;
+        signalMain.textContent = (isBuy ? '🟢' : '🔴') + ' SIGNAL: ' + act + ' (Fibo zonada)';
+        signalSub.textContent = 'Narx retracement zonasida: ' + zoneLow.toFixed(2) + ' – ' + zoneHigh.toFixed(2);
+      } else {
+        // Price outside the zone -> wait
+        const dist = currentPrice < zoneLow ? (zoneLow - currentPrice) : (currentPrice - zoneHigh);
+        banner.style.background = 'rgba(255, 255, 255, 0.03)';
+        banner.style.borderColor = 'var(--border-med)';
+        signalMain.style.color = 'var(--text-secondary)';
+        signalMain.textContent = '⏳ Kuting — narx Fibo zonasidan tashqarida';
+        signalSub.textContent = 'Zona: ' + zoneLow.toFixed(2) + ' – ' + zoneHigh.toFixed(2) + ' · Δ ' + dist.toFixed(2);
+      }
     }
 
     function triggerCalculateAnimation() {
@@ -797,7 +861,7 @@
         calculate();
         const high = parseFloat(document.getElementById('highVal').value) || 0;
         const low = parseFloat(document.getElementById('lowVal').value) || 0;
-        const range = high - low;
+        const range = Math.max(0, high - low);
         const reversal = parseFloat(document.getElementById('reversalPrice').textContent);
         const consolidation = parseFloat(document.getElementById('consolidationPrice').textContent);
 
@@ -893,14 +957,15 @@
 
         if (!record.type || record.type === 'RANGE') {
           const badgeClass = record.direction === 'BUY' ? 'badge buy' : 'badge sell';
+          const dirColor = record.direction === 'BUY' ? 'var(--color-buy)' : 'var(--color-sell)';
           tr.innerHTML = `
             <td>${record.time}</td>
             <td><span class="${badgeClass}">${record.direction}</span><span style="font-size: 9px; font-weight: 700; color: var(--text-muted); margin-left: 4px;">PLAN</span></td>
             <td class="mono">${record.high}</td>
             <td class="mono">${record.low}</td>
             <td class="mono">${record.range}</td>
-            <td class="mono" style="color: var(--color-sell);">${record.reversal}</td>
-            <td class="mono" style="color: var(--color-consolidation-text);">${record.consolidation}</td>
+            <td class="mono" style="color: ${dirColor};">${record.reversal}</td>
+            <td class="mono" style="color: ${dirColor};">${record.consolidation}</td>
           `;
         } else {
           // RISK Calculation Type
@@ -928,11 +993,12 @@
         calculate();
         const high = parseFloat(document.getElementById('highVal').value) || 0;
         const low = parseFloat(document.getElementById('lowVal').value) || 0;
-        const range = (high - low).toFixed(2);
+        const range = Math.max(0, high - low).toFixed(2);
         const reversal = document.getElementById('reversalPrice').textContent;
         const consolidation = document.getElementById('consolidationPrice').textContent;
 
         const dirArrow = currentDirection === 'buy' ? 'BUY ▲' : 'SELL ▼';
+        const side = currentDirection === 'buy' ? 'BUY' : 'SELL';
         const rangeText = range + (parseFloat(range) < rangeLimit ? ` (<${rangeLimit.toFixed(0)})` : ` (≥${rangeLimit.toFixed(0)})`);
 
         const text = `📊 IR TRADE | XAUUSD Plan
@@ -940,9 +1006,9 @@
 HIGH: ${high.toFixed(2)} | LOW: ${low.toFixed(2)}
 Range: ${rangeText}
 
-🎯 Точки входа (Entry Points):
-🔴 Разворот (${currentDirection === 'buy' ? 'SELL' : 'BUY'}): ${reversal}
-🟢 Консолидация (${currentDirection === 'buy' ? 'BUY' : 'SELL'}): ${consolidation}
+🎯 Fibo retracement zona (${side}):
+� Разворот (chuqur): ${reversal}
+🟢 Консолидация (sayoz): ${consolidation}
 
 Kanalimiz: @ir_trade`;
 
