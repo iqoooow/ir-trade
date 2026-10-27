@@ -32,6 +32,7 @@
   --color-gold: #C8A84B;            /* Gold accent */
   --color-gold-bg: #C8A84B;
   --color-gold-hover: #d8b85b;
+  --color-gold-glow: rgba(200, 168, 75, 0.15);
   
   /* --- Backgrounds --- */
   --bg-primary: #0b0b14;            /* Main background canvas */
@@ -576,6 +577,121 @@ input[type=number] {
 
 .entry-row.consolidation-row .entry-price-val {
   color: var(--color-consolidation-text);
+}
+
+/* Vertical Fibo ladder: levels, entry zone and current price marker */
+.fibo-ladder {
+  position: relative;
+  height: 240px;
+  margin-top: 10px;
+  background-color: var(--bg-card-highlight);
+  border: 1px solid var(--border-low);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fibo-ladder.empty {
+  height: auto;
+  padding: 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.fibo-ladder-inner {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+}
+
+.fibo-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.fibo-zone.buy {
+  background-color: var(--color-buy-bg);
+  border-color: var(--color-buy-border);
+}
+
+.fibo-zone.sell {
+  background-color: var(--color-sell-bg);
+  border-color: var(--color-sell-border);
+}
+
+.fibo-level {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed var(--border-high);
+}
+
+.fibo-level.edge {
+  border-top-style: solid;
+}
+
+.fibo-level.origin {
+  border-top-color: var(--color-sell-border);
+}
+
+.fibo-level-ratio,
+.fibo-level-price {
+  position: absolute;
+  top: 0;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 1px 4px;
+  background-color: var(--bg-card-highlight);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fibo-level-ratio {
+  left: 8px;
+}
+
+.fibo-level-price {
+  right: 8px;
+}
+
+.fibo-level.origin .fibo-level-ratio,
+.fibo-level.origin .fibo-level-price {
+  color: var(--color-sell);
+}
+
+.fibo-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid currentColor;
+  z-index: 2;
+}
+
+.fibo-marker-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background-color: var(--bg-secondary);
+  white-space: nowrap;
 }
 
 .action-side-badge {

@@ -129,6 +129,9 @@
               <span class="action-side-badge buy-badge" id="consolidationAction">BUY</span>
             </div>
           </div>
+
+          <!-- Vertical Fibo ladder (rendered by renderFiboLadder) -->
+          <div id="fiboLadder" class="fibo-ladder empty"></div>
         </div>
 
         <!-- Primary Calculate Button -->
@@ -719,6 +722,76 @@
 
       // Live signal based on current price
       updateSignal(reversalPrice, reversalAction.textContent, consolidationPrice, consolidationAction.textContent, range, high, low);
+      renderFiboLadder(high, low, range);
+    }
+
+    // Draws the swing as a vertical price scale (top = higher price): retracement levels,
+    // the entry zone between the two strategy levels and the current price marker.
+    function renderFiboLadder(high, low, range) {
+      const ladder = document.getElementById('fiboLadder');
+      if (range <= 0) {
+        ladder.className = 'fibo-ladder empty';
+        ladder.textContent = 'Shkala uchun HIGH va LOW kiriting';
+        return;
+      }
+
+      const isBuy = currentDirection === 'buy';
+      // Retracement ratio -> price: bullish leg measures down from HIGH, bearish leg up from LOW
+      const priceAt = r => isBuy ? high - range * r : low + range * r;
+      const currentPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+
+      // Visible price window: the swing, stretched toward the current price by at most half a range
+      let top = high;
+      let bottom = low;
+      if (currentPrice > 0) {
+        top = Math.max(top, Math.min(currentPrice, high + range * 0.5));
+        bottom = Math.min(bottom, Math.max(currentPrice, low - range * 0.5));
+      }
+      const yPct = price => ((top - price) / (top - bottom) * 100).toFixed(2) + '%';
+
+      // Strategy levels plus the classic 0.5 / 0.618, without duplicates
+      const ratios = [0, fiboConsolidation, fiboReversal, 0.5, 0.618, 1]
+        .filter((r, i, all) => all.findIndex(x => Math.abs(x - r) < 1e-9) === i);
+
+      const zoneTop = Math.max(priceAt(fiboConsolidation), priceAt(fiboReversal));
+      const zoneBottom = Math.min(priceAt(fiboConsolidation), priceAt(fiboReversal));
+      let html = '<div class="fibo-ladder-inner">' +
+        '<div class="fibo-zone ' + (isBuy ? 'buy' : 'sell') + '" style="top: ' + yPct(zoneTop) +
+        '; height: ' + ((zoneTop - zoneBottom) / (top - bottom) * 100).toFixed(2) + '%;"></div>';
+
+      ratios.forEach(r => {
+        const price = priceAt(r);
+        const isEdge = r === 0 || r === 1;
+        const isOrigin = r === 1; // swing origin = stop loss side
+        let ratioLabel = r.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+        if (r === 0) ratioLabel += isBuy ? ' · HIGH' : ' · LOW';
+        if (r === 1) ratioLabel += isBuy ? ' · LOW (SL)' : ' · HIGH (SL)';
+        html += '<div class="fibo-level' + (isEdge ? ' edge' : '') + (isOrigin ? ' origin' : '') +
+          '" style="top: ' + yPct(price) + ';">' +
+          '<span class="fibo-level-ratio">' + ratioLabel + '</span>' +
+          '<span class="fibo-level-price">' + price.toFixed(2) + '</span></div>';
+      });
+
+      if (currentPrice > 0) {
+        // Marker color follows the signal: in zone -> trade side, swing broken -> gold, otherwise neutral
+        const invalidated = isBuy ? currentPrice < low : currentPrice > high;
+        const inZone = currentPrice >= zoneBottom && currentPrice <= zoneTop;
+        let color = 'var(--text-secondary)';
+        if (invalidated) color = 'var(--color-gold)';
+        else if (inZone) color = isBuy ? 'var(--color-buy)' : 'var(--color-sell)';
+
+        // Pin the marker to the edge when the price is beyond the visible window
+        const shown = Math.min(top, Math.max(bottom, currentPrice));
+        let arrow = '';
+        if (currentPrice > top) arrow = '▲ ';
+        else if (currentPrice < bottom) arrow = '▼ ';
+
+        html += '<div class="fibo-marker" style="top: ' + yPct(shown) + '; color: ' + color + ';">' +
+          '<span class="fibo-marker-label">' + arrow + 'Narx ' + currentPrice.toFixed(2) + '</span></div>';
+      }
+
+      ladder.className = 'fibo-ladder';
+      ladder.innerHTML = html + '</div>';
     }
 
     function updateSignal(reversalPrice, reversalAct, consolidationPrice, consolidationAct, range, high, low) {
