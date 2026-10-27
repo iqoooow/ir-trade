@@ -238,6 +238,11 @@
               </div>
             </div>
 
+            <!-- Fibo settings validation warning -->
+            <div id="fiboSettingsError"
+              style="color: var(--color-sell); font-size: 11px; font-weight: 600; display: none; padding: 6px 10px; background: var(--bg-reversal-row); border-radius: 6px; border: 1px solid var(--color-sell-border); text-align: center;">
+            </div>
+
             <div class="settings-row">
               <span class="settings-row-label">Range Limiti</span>
               <span class="settings-row-desc">Yuqori volatillik chegarasi (standart: 60.00)</span>
@@ -513,9 +518,26 @@
       if (customConsolidation !== null) fiboConsolidation = parseFloat(customConsolidation);
       if (customRangeLimit !== null) rangeLimit = parseFloat(customRangeLimit);
 
+      // Discard an invalid stored pair (e.g. saved before validation existed)
+      if (validateFibo(fiboConsolidation, fiboReversal)) {
+        fiboReversal = 0.382;
+        fiboConsolidation = 0.236;
+        localStorage.removeItem('ir_setting_fibo_reversal');
+        localStorage.removeItem('ir_setting_fibo_consolidation');
+      }
+
       document.getElementById('settingFiboReversal').value = fiboReversal;
       document.getElementById('settingFiboConsolidation').value = fiboConsolidation;
       document.getElementById('settingRangeLimit').value = rangeLimit;
+    }
+
+    // Returns an error message for an invalid Fibo pair, or '' when valid.
+    // Both levels must be retracements inside the range: 0 < shallow < deep < 1.
+    function validateFibo(cons, rev) {
+      if (isNaN(cons) || isNaN(rev)) return '⚠️ Ikkala koeffitsiyentni kiriting';
+      if (cons <= 0 || rev <= 0 || cons >= 1 || rev >= 1) return '⚠️ Koeffitsiyentlar 0 va 1 orasida bo\'lishi kerak';
+      if (cons >= rev) return '⚠️ Консолидация (sayoz) Разворот (chuqur) dan kichik bo\'lishi kerak';
+      return '';
     }
 
     function saveSettingsAndRecalculate() {
@@ -523,8 +545,17 @@
       const consInput = parseFloat(document.getElementById('settingFiboConsolidation').value);
       const rangeInput = parseFloat(document.getElementById('settingRangeLimit').value);
 
-      if (!isNaN(revInput) && revInput >= 0) fiboReversal = revInput;
-      if (!isNaN(consInput) && consInput >= 0) fiboConsolidation = consInput;
+      // Invalid pair: keep the last valid levels and show why (inputs are left as typed)
+      const fiboErr = document.getElementById('fiboSettingsError');
+      const fiboError = validateFibo(consInput, revInput);
+      if (fiboError) {
+        fiboErr.textContent = fiboError + ' · oxirgi to\'g\'ri qiymatlar ishlatilmoqda';
+        fiboErr.style.display = 'block';
+      } else {
+        fiboErr.style.display = 'none';
+        fiboReversal = revInput;
+        fiboConsolidation = consInput;
+      }
       if (!isNaN(rangeInput) && rangeInput >= 0) rangeLimit = rangeInput;
 
       localStorage.setItem('ir_setting_fibo_reversal', fiboReversal);
@@ -546,6 +577,7 @@
       document.getElementById('settingFiboReversal').value = 0.382;
       document.getElementById('settingFiboConsolidation').value = 0.236;
       document.getElementById('settingRangeLimit').value = 60.00;
+      document.getElementById('fiboSettingsError').style.display = 'none';
 
       calculate();
       showToast("Sozlamalar standart holatga tiklandi!");
@@ -650,10 +682,10 @@
       document.getElementById('consolidationPrice').textContent = consolidationPrice.toFixed(2);
 
       // Live signal based on current price
-      updateSignal(reversalPrice, reversalAction.textContent, consolidationPrice, consolidationAction.textContent, range);
+      updateSignal(reversalPrice, reversalAction.textContent, consolidationPrice, consolidationAction.textContent, range, high, low);
     }
 
-    function updateSignal(reversalPrice, reversalAct, consolidationPrice, consolidationAct, range) {
+    function updateSignal(reversalPrice, reversalAct, consolidationPrice, consolidationAct, range, high, low) {
       const banner = document.getElementById('signalBanner');
       const signalMain = document.getElementById('signalMain');
       const signalSub = document.getElementById('signalSub');
@@ -677,7 +709,19 @@
       const bg = isBuy ? 'var(--color-buy-bg)' : 'var(--color-sell-bg)';
       const border = isBuy ? 'var(--color-buy-border)' : 'var(--color-sell-border)';
 
-      if (currentPrice >= zoneLow && currentPrice <= zoneHigh) {
+      // Price broke past the swing origin (below LOW on a bullish leg, above HIGH on a bearish leg)
+      // -> the measured swing is invalidated, the setup no longer applies
+      const invalidated = isBuy ? currentPrice < low : currentPrice > high;
+
+      if (invalidated) {
+        banner.style.background = 'var(--color-gold-glow)';
+        banner.style.borderColor = 'var(--border-gold)';
+        signalMain.style.color = 'var(--color-gold)';
+        signalMain.textContent = '⚠️ Swing buzildi — setup bekor';
+        signalSub.textContent = isBuy
+          ? 'Narx LOW (' + low.toFixed(2) + ') dan pastda · yangi swing o\'lchang'
+          : 'Narx HIGH (' + high.toFixed(2) + ') dan yuqorida · yangi swing o\'lchang';
+      } else if (currentPrice >= zoneLow && currentPrice <= zoneHigh) {
         // Price is inside the Fibonacci retracement zone -> active entry signal
         banner.style.background = bg;
         banner.style.borderColor = border;
@@ -1007,7 +1051,7 @@ HIGH: ${high.toFixed(2)} | LOW: ${low.toFixed(2)}
 Range: ${rangeText}
 
 🎯 Fibo retracement zona (${side}):
-� Разворот (chuqur): ${reversal}
+🔴 Разворот (chuqur): ${reversal}
 🟢 Консолидация (sayoz): ${consolidation}
 
 Kanalimiz: @ir_trade`;
