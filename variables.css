@@ -448,6 +448,24 @@ input[type=number] {
   }
 }
 
+.input-card select {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.input-card select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 /* Horizontal Info Bar below Inputs */
 .range-info-row {
   background-color: rgba(0, 0, 0, 0.15);

@@ -150,6 +150,26 @@
               Range-dan yuklash
             </button>
           </div>
+          <!-- How "Range-dan yuklash" picks the entry and TP -->
+          <div class="risk-inputs-grid" style="margin-bottom: 8px;">
+            <div class="input-card">
+              <span class="input-card-label">Kirish darajasi</span>
+              <select id="riskEntryMode" onchange="onRiskModeChange()">
+                <option value="cons">Консолидация (sayoz)</option>
+                <option value="rev">Разворот (chuqur)</option>
+                <option value="mid">Zona o'rtasi</option>
+              </select>
+            </div>
+            <div class="input-card">
+              <span class="input-card-label">TP maqsadi</span>
+              <select id="riskTpMode" onchange="onRiskModeChange()">
+                <option value="rr2">R:R 1:2</option>
+                <option value="rr3">R:R 1:3</option>
+                <option value="ext1272">Fibo 1.272</option>
+                <option value="ext1618">Fibo 1.618</option>
+              </select>
+            </div>
+          </div>
           <div class="risk-inputs-grid">
             <div class="input-card">
               <span class="input-card-label">Balans ($)</span>
@@ -177,6 +197,10 @@
             style="color: var(--color-sell); font-size: 11px; font-weight: 600; display: none; margin-top: 8px; padding: 6px 10px; background: var(--bg-reversal-row); border-radius: 6px; border: 1px solid var(--color-sell-border); text-align: center;">
             ⚠️ SL va TP qiymatlari Entry narxiga nisbatan qarama-qarshi tomonlarda bo'lishi kerak!
           </div>
+          <!-- Minimum lot warning row -->
+          <div id="riskLotWarning"
+            style="color: var(--color-gold); font-size: 11px; font-weight: 600; display: none; margin-top: 8px; padding: 6px 10px; background: var(--color-gold-glow); border-radius: 6px; border: 1px solid var(--border-gold); text-align: center;">
+          </div>
         </div>
 
         <!-- Calculated Risk Outputs -->
@@ -190,6 +214,10 @@
             <div class="risk-output-row">
               <span class="risk-output-label">Risk miqdori (USD):</span>
               <span class="risk-output-val" id="riskUsdDisplay" style="color: var(--color-sell);">$0.00</span>
+            </div>
+            <div class="risk-output-row">
+              <span class="risk-output-label">Haqiqiy risk (%):</span>
+              <span class="risk-output-val" id="riskActualPctDisplay">0.00%</span>
             </div>
             <div class="risk-output-row">
               <span class="risk-output-label">Foyda miqdori (USD):</span>
@@ -529,6 +557,14 @@
       document.getElementById('settingFiboReversal').value = fiboReversal;
       document.getElementById('settingFiboConsolidation').value = fiboConsolidation;
       document.getElementById('settingRangeLimit').value = rangeLimit;
+
+      // Risk tab: how "Range-dan yuklash" picks entry and TP (defaults keep the original 0.236 + 1:3 behaviour)
+      const entryModeSel = document.getElementById('riskEntryMode');
+      const tpModeSel = document.getElementById('riskTpMode');
+      entryModeSel.value = localStorage.getItem('ir_risk_entry_mode') || 'cons';
+      tpModeSel.value = localStorage.getItem('ir_risk_tp_mode') || 'rr3';
+      if (!entryModeSel.value) entryModeSel.value = 'cons'; // unknown stored value
+      if (!tpModeSel.value) tpModeSel.value = 'rr3';
     }
 
     // Returns an error message for an invalid Fibo pair, or '' when valid.
@@ -747,26 +783,55 @@
     // -------------------------------------------------------------
     // Risk & Lot Calculator Tab
     // -------------------------------------------------------------
+    function onRiskModeChange() {
+      localStorage.setItem('ir_risk_entry_mode', document.getElementById('riskEntryMode').value);
+      localStorage.setItem('ir_risk_tp_mode', document.getElementById('riskTpMode').value);
+
+      // Re-apply to the risk inputs only when a valid range is already entered
+      const high = parseFloat(document.getElementById('highVal').value) || 0;
+      const low = parseFloat(document.getElementById('lowVal').value) || 0;
+      if (high > low) syncPricesFromRange();
+    }
+
     function syncPricesFromRange() {
-      // Sync consolidation entry and low/high stop loss into the risk calculator based on current settings
+      // Sync the chosen Fibo entry, swing stop loss and chosen TP target into the risk calculator
       calculate();
       const low = parseFloat(document.getElementById('lowVal').value) || 0;
       const high = parseFloat(document.getElementById('highVal').value) || 0;
-      const consolidation = parseFloat(document.getElementById('consolidationPrice').textContent) || 0;
+      const range = high - low;
 
-      document.getElementById('riskEntry').value = consolidation.toFixed(2);
-
-      if (currentDirection === 'buy') {
-        document.getElementById('riskStop').value = low.toFixed(2);
-        // Default 1:3 Take Profit target
-        const diff = consolidation - low;
-        document.getElementById('riskProfit').value = (consolidation + diff * 3).toFixed(2);
-      } else {
-        document.getElementById('riskStop').value = high.toFixed(2);
-        // Default 1:3 Take Profit target
-        const diff = high - consolidation;
-        document.getElementById('riskProfit').value = (consolidation - diff * 3).toFixed(2);
+      if (range <= 0) {
+        showToast("Avval Diapazon bo'limida HIGH va LOW kiriting!");
+        return;
       }
+
+      const consolidation = parseFloat(document.getElementById('consolidationPrice').textContent) || 0;
+      const reversal = parseFloat(document.getElementById('reversalPrice').textContent) || 0;
+      const entryMode = document.getElementById('riskEntryMode').value;
+      const tpMode = document.getElementById('riskTpMode').value;
+
+      let entry = consolidation;
+      if (entryMode === 'rev') entry = reversal;
+      else if (entryMode === 'mid') entry = (consolidation + reversal) / 2;
+
+      // Stop loss sits at the swing origin: LOW on a bullish leg, HIGH on a bearish leg
+      const isBuy = currentDirection === 'buy';
+      const sign = isBuy ? 1 : -1;
+      const stop = isBuy ? low : high;
+      const slDistance = Math.abs(entry - stop);
+
+      let profit;
+      if (tpMode === 'rr2') profit = entry + sign * slDistance * 2;
+      else if (tpMode === 'rr3') profit = entry + sign * slDistance * 3;
+      else {
+        // Fibo extension of the swing, measured from the swing origin
+        const ext = tpMode === 'ext1618' ? 1.618 : 1.272;
+        profit = stop + sign * range * ext;
+      }
+
+      document.getElementById('riskEntry').value = entry.toFixed(2);
+      document.getElementById('riskStop').value = stop.toFixed(2);
+      document.getElementById('riskProfit').value = profit.toFixed(2);
 
       calculateRisk();
       showToast("Range qiymatlari yuklandi!");
@@ -779,39 +844,61 @@
       const stop = parseFloat(document.getElementById('riskStop').value) || 0;
       const profit = parseFloat(document.getElementById('riskProfit').value) || 0;
       const riskErr = document.getElementById('riskError');
+      const lotWarn = document.getElementById('riskLotWarning');
+      lotWarn.style.display = 'none';
+
+      function showEmptyResults() {
+        document.getElementById('riskUsdDisplay').textContent = '$0.00';
+        document.getElementById('riskActualPctDisplay').textContent = '0.00%';
+        document.getElementById('riskLotDisplay').textContent = '0.00';
+        document.getElementById('riskRewardDisplay').textContent = '$0.00';
+        document.getElementById('riskRatioDisplay').textContent = '1:0.0';
+      }
 
       // Validation: SL and TP must be on opposite sides of Entry
       const hasError = (entry - stop) * (entry - profit) >= 0 && entry !== 0 && stop !== 0 && profit !== 0;
 
       if (hasError) {
         riskErr.style.display = 'block';
-        document.getElementById('riskUsdDisplay').textContent = '$0.00';
-        document.getElementById('riskLotDisplay').textContent = '0.00';
-        document.getElementById('riskRewardDisplay').textContent = '$0.00';
-        document.getElementById('riskRatioDisplay').textContent = '1:0.0';
+        showEmptyResults();
         return;
       } else {
         riskErr.style.display = 'none';
       }
 
-      const usdRisk = balance * (riskPct / 100);
-      document.getElementById('riskUsdDisplay').textContent = '$' + usdRisk.toFixed(2);
-
+      const usdRiskTarget = balance * (riskPct / 100);
       const slDistance = Math.abs(entry - stop);
       const tpDistance = Math.abs(entry - profit);
 
       if (slDistance === 0) {
-        document.getElementById('riskLotDisplay').textContent = '0.00';
-        document.getElementById('riskRewardDisplay').textContent = '$0.00';
-        document.getElementById('riskRatioDisplay').textContent = '1:0.0';
+        showEmptyResults();
         return;
       }
 
-      // Gold standard contract size: 1 lot = 100 ounces. 
+      // Gold standard contract size: 1 lot = 100 ounces.
       // A $1 change in Gold price equals $100 P&L per standard lot.
-      // So Lot Size = USD Risk / (SL Distance * 100)
-      const lotSize = usdRisk / (slDistance * 100);
+      // So Lot Size = USD Risk / (SL Distance * 100), rounded DOWN to the 0.01 lot step
+      // so the real risk never exceeds the chosen risk %. (1e-9 absorbs float error, e.g. 0.29999…)
+      const MIN_LOT = 0.01;
+      const lotSize = Math.floor(usdRiskTarget / (slDistance * 100) * 100 + 1e-9) / 100;
+
+      if (lotSize < MIN_LOT) {
+        showEmptyResults();
+        if (usdRiskTarget > 0) {
+          const minLotRisk = MIN_LOT * slDistance * 100;
+          const minLotPct = balance > 0 ? (minLotRisk / balance * 100).toFixed(2) + '%' : '—';
+          lotWarn.textContent = '⚠️ Risk minimal lot (' + MIN_LOT.toFixed(2) + ') uchun yetarli emas: ' + MIN_LOT.toFixed(2) + ' lotda risk $' + minLotRisk.toFixed(2) + ' (' + minLotPct + ')';
+          lotWarn.style.display = 'block';
+        }
+        document.getElementById('riskRatioDisplay').textContent = '1:' + (tpDistance / slDistance).toFixed(1);
+        return;
+      }
+
+      // Actual risk and reward of the rounded lot
+      const usdRisk = lotSize * slDistance * 100;
       document.getElementById('riskLotDisplay').textContent = lotSize.toFixed(2);
+      document.getElementById('riskUsdDisplay').textContent = '$' + usdRisk.toFixed(2);
+      document.getElementById('riskActualPctDisplay').textContent = balance > 0 ? (usdRisk / balance * 100).toFixed(2) + '%' : '0.00%';
 
       const usdReward = lotSize * (tpDistance * 100);
       document.getElementById('riskRewardDisplay').textContent = '$' + usdReward.toFixed(2);
@@ -1071,6 +1158,7 @@ Kanalimiz: @ir_trade`;
 
         const lotSize = document.getElementById('riskLotDisplay').textContent;
         const usdRisk = document.getElementById('riskUsdDisplay').textContent;
+        const actualPct = document.getElementById('riskActualPctDisplay').textContent;
         const usdReward = document.getElementById('riskRewardDisplay').textContent;
         const rrRatio = document.getElementById('riskRatioDisplay').textContent;
 
@@ -1080,7 +1168,7 @@ Kanalimiz: @ir_trade`;
 
         const text = `📊 IR TRADE | Gold Risk Management
 Тип ордера: ${dirArrow}
-Баланс: $${balance.toLocaleString()} | Риск: ${riskPct}% (${usdRisk})
+Баланс: $${balance.toLocaleString()} | Риск: ${actualPct} (${usdRisk})
 Вход (Entry): ${entry.toFixed(2)}
 Stop Loss: ${stop.toFixed(2)} (${slPips} pips)
 Take Profit: ${profit.toFixed(2)}
